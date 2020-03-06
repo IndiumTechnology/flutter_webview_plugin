@@ -125,15 +125,17 @@ class WebviewManager {
     BrowserClient webViewClient;
     ResultHandler resultHandler;
     Context context;
+    private MethodChannel channel;
     private boolean ignoreSSLErrors = false;
 
-    WebviewManager(final Activity activity, final Context context, final List<String> channelNames) {
+    WebviewManager(final Activity activity, final Context context, final MethodChannel channel, final List<String> channelNames) {
         this.webView = new ObservableWebView(activity);
         this.activity = activity;
         this.context = context;
+        this.channel = channel;
         this.resultHandler = new ResultHandler();
         this.platformThreadHandler = new Handler(context.getMainLooper());
-        webViewClient = new BrowserClient() {
+        webViewClient = new BrowserClient(channel) {
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 if (ignoreSSLErrors){
@@ -152,7 +154,7 @@ class WebviewManager {
                             if (webView.canGoBack()) {
                                 webView.goBack();
                             } else {
-                                FlutterWebviewPlugin.channel.invokeMethod("onBack", null);
+                                channel.invokeMethod("onBack", null);
                             }
                             return true;
                     }
@@ -166,10 +168,10 @@ class WebviewManager {
             public void onScroll(int x, int y, int oldx, int oldy) {
                 Map<String, Object> yDirection = new HashMap<>();
                 yDirection.put("yDirection", (double) y);
-                FlutterWebviewPlugin.channel.invokeMethod("onScrollYChanged", yDirection);
+                channel.invokeMethod("onScrollYChanged", yDirection);
                 Map<String, Object> xDirection = new HashMap<>();
                 xDirection.put("xDirection", (double) x);
-                FlutterWebviewPlugin.channel.invokeMethod("onScrollXChanged", xDirection);
+                channel.invokeMethod("onScrollXChanged", xDirection);
             }
         });
 
@@ -258,7 +260,7 @@ class WebviewManager {
             public void onProgressChanged(WebView view, int progress) {
                 Map<String, Object> args = new HashMap<>();
                 args.put("progress", progress / 100.0);
-                FlutterWebviewPlugin.channel.invokeMethod("onProgressChanged", args);
+                channel.invokeMethod("onProgressChanged", args);
             }
 
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
@@ -355,7 +357,7 @@ class WebviewManager {
     private void registerJavaScriptChannelNames(List<String> channelNames) {
         for (String channelName : channelNames) {
             webView.addJavascriptInterface(
-                    new JavaScriptChannel(FlutterWebviewPlugin.channel, channelName, platformThreadHandler), channelName);
+                    new JavaScriptChannel(channel, channelName, platformThreadHandler), channelName);
         }
     }
 
@@ -466,7 +468,7 @@ class WebviewManager {
         }
 
         closed = true;
-        FlutterWebviewPlugin.channel.invokeMethod("onDestroy", null);
+        channel.invokeMethod("onDestroy", null);
     }
 
     void close() {

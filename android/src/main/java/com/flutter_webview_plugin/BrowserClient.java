@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.flutter.plugin.common.MethodChannel;
+
 /**
  * Created by lejard_h on 20/12/2017.
  */
@@ -20,12 +22,15 @@ import java.util.regex.Pattern;
 public class BrowserClient extends WebViewClient {
     private Pattern invalidUrlPattern = null;
 
-    public BrowserClient() {
-        this(null);
+    private MethodChannel channel;
+
+    public BrowserClient(MethodChannel channel) {
+        this(null, channel);
     }
 
-    public BrowserClient(String invalidUrlRegex) {
+    public BrowserClient(String invalidUrlRegex, MethodChannel channel) {
         super();
+        this.channel = channel;
         if (invalidUrlRegex != null) {
             invalidUrlPattern = Pattern.compile(invalidUrlRegex);
         }
@@ -45,7 +50,7 @@ public class BrowserClient extends WebViewClient {
         Map<String, Object> data = new HashMap<>();
         data.put("url", url);
         data.put("type", "startLoad");
-        FlutterWebviewPlugin.channel.invokeMethod("onState", data);
+        channel.invokeMethod("onState", data);
     }
 
     @Override
@@ -54,10 +59,10 @@ public class BrowserClient extends WebViewClient {
         Map<String, Object> data = new HashMap<>();
         data.put("url", url);
 
-        FlutterWebviewPlugin.channel.invokeMethod("onUrlChanged", data);
+        channel.invokeMethod("onUrlChanged", data);
 
         data.put("type", "finishLoad");
-        FlutterWebviewPlugin.channel.invokeMethod("onState", data);
+        channel.invokeMethod("onState", data);
 
     }
 
@@ -72,7 +77,7 @@ public class BrowserClient extends WebViewClient {
         data.put("url", url);
         data.put("type", isInvalid ? "abortLoad" : "shouldStart");
 
-        FlutterWebviewPlugin.channel.invokeMethod("onState", data);
+        channel.invokeMethod("onState", data);
         return isInvalid;
     }
 
@@ -85,7 +90,7 @@ public class BrowserClient extends WebViewClient {
         data.put("url", url);
         data.put("type", isInvalid ? "abortLoad" : "shouldStart");
 
-        FlutterWebviewPlugin.channel.invokeMethod("onState", data);
+        channel.invokeMethod("onState", data);
         return isInvalid;
     }
 
@@ -96,7 +101,7 @@ public class BrowserClient extends WebViewClient {
         Map<String, Object> data = new HashMap<>();
         data.put("url", request.getUrl().toString());
         data.put("code", Integer.toString(errorResponse.getStatusCode()));
-        FlutterWebviewPlugin.channel.invokeMethod("onHttpError", data);
+        channel.invokeMethod("onHttpError", data);
     }
 
     @Override
@@ -105,7 +110,7 @@ public class BrowserClient extends WebViewClient {
         Map<String, Object> data = new HashMap<>();
         data.put("url", failingUrl);
         data.put("code", Integer.toString(errorCode));
-        FlutterWebviewPlugin.channel.invokeMethod("onHttpError", data);
+        channel.invokeMethod("onHttpError", data);
     }
 
     private boolean checkInvalidUrl(String url) {

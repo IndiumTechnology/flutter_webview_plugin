@@ -28,22 +28,29 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
     private Activity activity;
     private WebviewManager webViewManager;
     private Context context;
-    static MethodChannel channel;
+    private MethodChannel channel;
     private static final String CHANNEL_NAME = "flutter_webview_plugin";
     private static final String JS_CHANNEL_NAMES_FIELD = "javascriptChannelNames";
 
     public static void registerWith(PluginRegistry.Registrar registrar) {
         if (registrar.activity() != null) {
-            channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
-            final FlutterWebviewPlugin instance = new FlutterWebviewPlugin(registrar.activity(), registrar.activeContext());
-            registrar.addActivityResultListener(instance);
-            channel.setMethodCallHandler(instance);
+            for (int i = 0 ; i < 10 ; i++) {
+                final FlutterWebviewPlugin instance = new FlutterWebviewPlugin(
+                    registrar.activity(), 
+                    registrar.activeContext(),
+                    new MethodChannel(registrar.messenger(), CHANNEL_NAME + "_" + String.valueOf(i))
+                );
+                registrar.addActivityResultListener(instance);
+            }
         }
     }
 
-    FlutterWebviewPlugin(Activity activity, Context context) {
+    FlutterWebviewPlugin(Activity activity, Context context, MethodChannel methodChannel) {
         this.activity = activity;
         this.context = context;
+
+        this.channel = methodChannel;
+        this.channel.setMethodCallHandler(this);
     }
 
     @Override
@@ -135,7 +142,7 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
             if (arguments.containsKey(JS_CHANNEL_NAMES_FIELD)) {
                 channelNames = (List<String>) arguments.get(JS_CHANNEL_NAMES_FIELD);
             }
-            webViewManager = new WebviewManager(activity, context, channelNames);
+            webViewManager = new WebviewManager(activity, context, channel, channelNames);
         }
 
         FrameLayout.LayoutParams params = buildLayoutParams(call);

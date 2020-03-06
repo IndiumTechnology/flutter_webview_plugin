@@ -12,24 +12,39 @@ const _kChannel = 'flutter_webview_plugin';
 // TODO: more general state for iOS/android
 enum WebViewState { shouldStart, startLoad, finishLoad, abortLoad }
 
-// TODO: use an id by webview to be able to manage multiple webview
 
 /// Singleton class that communicate with a Webview Instance
 class FlutterWebviewPlugin {
-  factory FlutterWebviewPlugin() {
-    if(_instance == null) {
-      const MethodChannel methodChannel = const MethodChannel(_kChannel);
-      _instance = FlutterWebviewPlugin.private(methodChannel);
+  static List<FlutterWebviewPlugin> _webviews = [];
+
+  static void RemoveWebview(int index) {
+    if (index < _webviews.length) {
+      var webview = _webviews.elementAt(index);
+      webview.close();
+      _webviews.removeAt(index);
     }
-    return _instance;
+  }
+
+  static int GetWebviewCount() {
+      return _webviews.length;
+  }
+
+  factory FlutterWebviewPlugin() {
+    if (_webviews.length == 10) {
+      throw Exception('FlutterWebviewPlugin: maximum count of webviews is 10.');
+    }
+
+    int index = _webviews.length;
+    MethodChannel methodChannel = MethodChannel('${_kChannel}_$index');
+    var instance = FlutterWebviewPlugin.private(methodChannel);
+    _webviews.add(instance);
+    return instance;
   }
 
   @visibleForTesting
   FlutterWebviewPlugin.private(this._channel) {
     _channel.setMethodCallHandler(_handleMessages);
   }
-
-  static FlutterWebviewPlugin _instance;
 
   final MethodChannel _channel;
 
@@ -292,7 +307,6 @@ class FlutterWebviewPlugin {
     _onScrollYChanged.close();
     _onHttpError.close();
     _onPostMessage.close();
-    _instance = null;
   }
 
   Future<Map<String, String>> getCookies() async {
